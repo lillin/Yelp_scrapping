@@ -4,7 +4,6 @@ import os
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.firefox.options import Options
 
 LINKS_LIST = [
@@ -23,7 +22,7 @@ LINKS_LIST = [
 ]
 
 
-class Parser:
+class Scrapper:
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     COMPANY_NAME = 'company_name'
@@ -34,11 +33,12 @@ class Parser:
     FIELDNAMES = [COMPANY_NAME, CATEGORY, WEBSITE, ]
 
     def __init__(self):
-        self.driver = os.path.join(self.BASE_DIR, 'geckodriver.exe')
+        self.driver = os.path.join(self.BASE_DIR, 'Yelp_scrapping', 'geckodriver.exe')
         self.options = Options()
         self.options.add_argument('-headless')
 
         self.browser = webdriver.Firefox(executable_path=self.driver, options=self.options)
+        self.browser.implicitly_wait(10)
 
         # TODO: uncomment after testing
         # self.file = open('companies.csv', 'w')
@@ -49,7 +49,9 @@ class Parser:
 
     def __call__(self, *args, **kwargs):
         self.get_info()
-        self.scrap_info()
+        # self.scrap_info()
+
+        self.browser.close()
 
     def get_info(self):
         for link in LINKS_LIST:
@@ -57,41 +59,23 @@ class Parser:
 
             while True:
                 try:
-                    # find and init button to the next page
-                    next_page_button = \
-                        self.browser.find_element_by_class_name(
-                            'lemon--a__373c0__IEZFH link__373c0__1G70M '
-                            'next-link navigation-button__373c0__23BAT '
-                            'link-color--inherit__373c0__3dzpk '
-                            'link-size--inherit__373c0__1VFlE'
-                        )
-
-                    # get links for companies from page with results
                     self.get_companies_list_from_page()
 
-                    next_page_button.click()
+                    next_page_link = self.browser.find_element_by_xpath(
+                        '/html/body/div[2]/div[3]/div[2]/div/div[1]/div[1]/div[2]/div[2]/div[1]/div[1]/div/div[11]/span'
+                    ).find_element_by_tag_name('a').get_property('href')
+
+                    self.browser.get(next_page_link)
+
                 except NoSuchElementException:
-                    self.get_companies_list_from_page()
                     break
 
     def get_companies_list_from_page(self):
-        # do we need this?
-        ActionChains(self.browser).move_to_element(
-            self.browser.find_elements_by_class_name(
-                'lemon--div__373c0__1mboc '
-                'padding-t1__373c0__2aTOb '
-                'padding-b1__373c0__3erWW '
-                'border-color--default__373c0__3-ifU'
-            )
-        ).perform()
+        page_h4_headers = self.browser.find_elements_by_tag_name('h4')
 
-        for elem in self.browser.find_elements_by_class_name(
-                'lemon--a__373c0__IEZFH '
-                'link__373c0__1G70M '
-                'link-color--inherit__373c0__3dzpk '
-                'link-size--inherit__373c0__1VFlE'
-        ):
-            link_to_company = elem.get_property('href')
+        for elem in page_h4_headers:
+            anchor_elem = elem.find_element_by_tag_name('a')
+            link_to_company = anchor_elem.get_property('href')
             self.LINKS_CATALOG.append(link_to_company)
 
     def scrap_info(self):
@@ -107,15 +91,6 @@ class Parser:
 
             # self.writer.writerow(data)
 
-# browser.close()
-# >>> quit()
 
-# go to link from LINKS
-# scroll to:
-# div lemon--div__373c0__1mboc padding-t1__373c0__2aTOb padding-b1__373c0__3erWW border-color--default__373c0__3-ifU
-# for link h4 on page: scrap_from_page -> write_info
-# click on NEXT PAGE button
-
-# methods
-# scrap_from_page
-# write_info
+if __name__ == '__main__':
+    Scrapper()()
