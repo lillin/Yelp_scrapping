@@ -1,9 +1,13 @@
 import csv
+import logging
 import os
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.firefox.options import Options
+
+
+logging.basicConfig(level=logging.INFO)
 
 LINKS_LIST = [
     'https://www.yelp.com/search?cflt=gyms&find_loc=Arlington%2C%20VA',
@@ -65,6 +69,7 @@ class Scrapper:
         self.init_writers()
 
         for link in LINKS_LIST:
+            logging.info(f'Process link from set {link}')
             self.browser.get(link)
 
             while True:
@@ -86,11 +91,10 @@ class Scrapper:
                 for link in links_catalog:
 
                     self.browser.get(link)
-                    print('scrap_info'.upper(), link)
+                    logging.info(f'Getting info from {link}')
                     results = self._compose_resulting_info()
 
-                    print('OUTPUT: ')
-                    print(results)
+                    logging.info(f'Writing output {results}')
 
                     self.writer.writerow(results)
         else:
@@ -104,7 +108,7 @@ class Scrapper:
             anchor_elem = elem.find_element_by_tag_name('a')
             link_to_company = anchor_elem.get_property('href')
 
-            print(link_to_company)
+            logging.info(f'Get link {link_to_company}')
             getattr(self, 'catalog_writer').writerow([link_to_company])
 
     def _compose_resulting_info(self):
@@ -181,6 +185,6 @@ if __name__ == '__main__':
     try:
         scrapper()
     except Exception as e:
-        print(e)
+        logging.exception(f'Unexpected exception {e}')
         scrapper.browser.close()
         scrapper.file.close()
